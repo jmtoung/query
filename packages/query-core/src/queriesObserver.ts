@@ -252,16 +252,7 @@ export class QueriesObserver<
       }
     })
 
-    return observers.sort((a, b) => {
-      return (
-        queries.findIndex(
-          (q) => q.queryHash === a.defaultedQueryOptions.queryHash,
-        ) -
-        queries.findIndex(
-          (q) => q.queryHash === b.defaultedQueryOptions.queryHash,
-        )
-      )
-    })
+    return observers
   }
 
   #onUpdate(observer: QueryObserver, result: QueryObserverResult): void {

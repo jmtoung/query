@@ -264,4 +264,67 @@ describe('queriesObserver', () => {
     // Clean-up
     unsubscribe2()
   })
+
+  test('should handle duplicate query keys in different positions', async () => {
+    const keyA = queryKey()
+    const keyB = queryKey()
+    const queryFnA = vi.fn().mockReturnValue('A')
+    const queryFnB = vi.fn().mockReturnValue('B')
+    
+    const observer = new QueriesObserver(queryClient, [
+      { queryKey: keyA, queryFn: queryFnA, queryHash: keyA.join(',') },
+      { queryKey: keyB, queryFn: queryFnB, queryHash: keyB.join(',') },
+      { queryKey: keyA, queryFn: queryFnA, queryHash: keyA.join(',') },
+    ])
+
+    const results: Array<Array<QueryObserverResult>> = []
+    results.push(observer.getOptimisticResult([
+      { queryKey: keyA, queryFn: queryFnA },
+      { queryKey: keyB, queryFn: queryFnB },
+      { queryKey: keyA, queryFn: queryFnA },
+    ], undefined)[0])
+    
+    const unsubscribe = observer.subscribe((result) => {
+      results.push(result)
+    })
+    
+    await sleep(1)
+    unsubscribe()
+
+    expect(results.length).toBe(6)
+    expect(results[0]).toMatchObject([
+      { status: 'pending', fetchStatus: 'idle', data: undefined },
+      { status: 'pending', fetchStatus: 'idle', data: undefined },
+      { status: 'pending', fetchStatus: 'idle', data: undefined },
+    ])
+    expect(results[1]).toMatchObject([
+      { status: 'pending', fetchStatus: 'fetching', data: undefined },
+      { status: 'pending', fetchStatus: 'idle', data: undefined },
+      { status: 'pending', fetchStatus: 'idle', data: undefined },
+    ])
+    expect(results[2]).toMatchObject([
+      { status: 'pending', fetchStatus: 'fetching', data: undefined },
+      { status: 'pending', fetchStatus: 'fetching', data: undefined },
+      { status: 'pending', fetchStatus: 'idle', data: undefined },
+    ])
+    expect(results[3]).toMatchObject([
+      { status: 'success', fetchStatus: 'idle', data: 'A' },
+      { status: 'pending', fetchStatus: 'fetching', data: undefined },
+      { status: 'pending', fetchStatus: 'idle', data: undefined },
+    ])
+    expect(results[4]).toMatchObject([
+      { status: 'success', fetchStatus: 'idle', data: 'A' },
+      { status: 'pending', fetchStatus: 'fetching', data: undefined },
+      { status: 'success', fetchStatus: 'idle', data: 'A' },
+    ])
+    expect(results[5]).toMatchObject([
+      { status: 'success', fetchStatus: 'idle', data: 'A' },
+      { status: 'success', fetchStatus: 'idle', data: 'B' },
+      { status: 'success', fetchStatus: 'idle', data: 'A' },
+    ])
+    
+    // Verify that queryFnA was only called once despite being used twice
+    expect(queryFnA).toHaveBeenCalledTimes(1)
+    expect(queryFnB).toHaveBeenCalledTimes(1)
+  })
 })
