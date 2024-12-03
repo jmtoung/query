@@ -315,6 +315,11 @@ export class Query<
 
       this.#cache.notify({ type: 'observerAdded', query: this, observer })
     }
+    console.log('query.addObserver')
+    console.group()
+    console.log('query', this)
+    console.log('observer', observer)
+    console.groupEnd()
   }
 
   removeObserver(observer: QueryObserver<any, any, any, any, any>): void {
@@ -456,6 +461,7 @@ export class Query<
       this.state.fetchStatus === 'idle' ||
       this.state.fetchMeta !== context.fetchOptions?.meta
     ) {
+      console.log('dispatch fetch', this.state.fetchStatus, this.state.fetchMeta, context.fetchOptions?.meta)
       this.#dispatch({ type: 'fetch', meta: context.fetchOptions?.meta })
     }
 
@@ -544,6 +550,10 @@ export class Query<
     const reducer = (
       state: QueryState<TData, TError>,
     ): QueryState<TData, TError> => {
+      console.log('dispatching')
+      console.group()
+      console.log('query', this)
+      console.log('action', action)
       switch (action.type) {
         case 'failed':
           return {

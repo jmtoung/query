@@ -50,7 +50,7 @@ export class QueriesObserver<
     options?: QueriesObserverOptions<TCombinedResult>,
   ) {
     super()
-
+    console.log('queriesObserver.constructor')
     this.#client = client
     this.#options = options
     this.#queries = []
@@ -61,6 +61,12 @@ export class QueriesObserver<
   }
 
   protected onSubscribe(): void {
+    console.log('queriesObserver.onSubscribe')
+    console.group()
+    console.log('observer', this)
+    console.log('listeners-size', this.listeners.size)
+    console.log('observers-size', this.#observers.length)
+    console.groupEnd()
     if (this.listeners.size === 1) {
       this.#observers.forEach((observer) => {
         observer.subscribe((result) => {
@@ -88,6 +94,11 @@ export class QueriesObserver<
     options?: QueriesObserverOptions<TCombinedResult>,
     notifyOptions?: NotifyOptions,
   ): void {
+    console.log('queriesObserver.setQueries')
+    console.group()
+    console.log('queriesObserver.setQueries', 'queries', queries)
+    console.log('queriesObserver.setQueries', 'options', options)
+    console.log('queriesObserver.setQueries', 'notifyOptions', notifyOptions)
     this.#queries = queries
     this.#options = options
 
@@ -105,10 +116,13 @@ export class QueriesObserver<
 
       const newObserverMatches = this.#findMatchingObservers(this.#queries)
 
+      console.log('prevObservers', prevObservers)
+      console.log('newObserverMatches', newObserverMatches)
       // set options for the new observers to notify of changes
-      newObserverMatches.forEach((match) =>
-        match.observer.setOptions(match.defaultedQueryOptions, notifyOptions),
-      )
+      newObserverMatches.forEach((match) => {
+        console.log('running setOptions for ', match)
+        match.observer.setOptions(match.defaultedQueryOptions, notifyOptions)
+      })
 
       const newObservers = newObserverMatches.map((match) => match.observer)
       const newResult = newObservers.map((observer) =>
@@ -126,6 +140,7 @@ export class QueriesObserver<
       this.#observers = newObservers
       this.#result = newResult
 
+      console.log('queriesObserver.setQueries', 'hasListeners?', this.hasListeners())
       if (!this.hasListeners()) {
         return
       }
@@ -135,6 +150,7 @@ export class QueriesObserver<
       })
 
       difference(newObservers, prevObservers).forEach((observer) => {
+        console.log('queriesObserver.observer.subscribe', observer)
         observer.subscribe((result) => {
           this.#onUpdate(observer, result)
         })
@@ -142,6 +158,8 @@ export class QueriesObserver<
 
       this.#notify()
     })
+
+    console.groupEnd()
   }
 
   getCurrentResult(): Array<QueryObserverResult> {
@@ -259,6 +277,7 @@ export class QueriesObserver<
   }
 
   #notify(): void {
+    console.log('queriesObserver.#notify')
     if (this.hasListeners()) {
       const previousResult = this.#combinedResult
       const newResult = this.#combineResult(
@@ -267,11 +286,25 @@ export class QueriesObserver<
       )
 
       if (previousResult !== newResult) {
+        console.log('previousResult')
+        ;(previousResult as Array<any> | undefined)?.forEach((result, index) => {
+          console.log('index', index, {...result})
+        })
+        console.log('newResult')
+        ;(newResult as Array<any> | undefined)?.forEach((result, index) => {
+          console.log('index', index, {...result})
+        })
         notifyManager.batch(() => {
           this.listeners.forEach((listener) => {
+            console.log('queriesObserver is notifying its listeners...')
+            this.#result.forEach((result, index) => {
+              console.log('index', index, {...result})
+            })
             listener(this.#result)
           })
         })
+      } else {
+        console.log('previous result === new result')
       }
     }
   }

@@ -101,17 +101,24 @@ export class QueryObserver<
   }
 
   protected onSubscribe(): void {
+    console.log('queryObserver.onSubscribe')
+    console.group()
+    console.log('observer', this)
+    console.log('listeners-size', this.listeners.size)
     if (this.listeners.size === 1) {
       this.#currentQuery.addObserver(this)
 
       if (shouldFetchOnMount(this.#currentQuery, this.options)) {
+        console.log('calling executing fetch from queryObserver')
         this.#executeFetch()
       } else {
+        console.log('updating result...')
         this.updateResult()
       }
 
       this.#updateTimers()
     }
+    console.groupEnd()
   }
 
   protected onUnsubscribe(): void {
@@ -196,10 +203,15 @@ export class QueryObserver<
         prevOptions,
       )
     ) {
+      console.log('queryObserver.setOptions')
+      console.group()
+      console.log('executing a fetch because there are subscribers', this.hasListeners())
+      console.groupEnd()
       this.#executeFetch()
     }
 
     // Update result
+    console.log('queryObserver.setOptions', 'updateResult')
     this.updateResult(notifyOptions)
 
     // Update stale interval if needed
@@ -331,6 +343,7 @@ export class QueryObserver<
       ...fetchOptions,
       cancelRefetch: fetchOptions.cancelRefetch ?? true,
     }).then(() => {
+      console.log('resolving fetch, now updating result', this.#currentQuery)
       this.updateResult()
       return this.#currentResult
     })
@@ -653,7 +666,12 @@ export class QueryObserver<
       | QueryObserverResult<TData, TError>
       | undefined
 
+    console.log('updatingResult for ', this.#currentQuery)
+    console.group()
     const nextResult = this.createResult(this.#currentQuery, this.options)
+    console.log('prevResult', prevResult)
+    console.log('nextResult', nextResult)
+    console.groupEnd()
 
     this.#currentResultState = this.#currentQuery.state
     this.#currentResultOptions = this.options
@@ -664,8 +682,10 @@ export class QueryObserver<
 
     // Only notify and update result if something has changed
     if (shallowEqualObjects(nextResult, prevResult)) {
+      console.log('nothing has changed...')
       return
     }
+    console.log('something has changed...')
 
     this.#currentResult = nextResult
 
@@ -741,6 +761,12 @@ export class QueryObserver<
   }
 
   #notify(notifyOptions: NotifyOptions): void {
+    console.log('queryObserver notifying results updated to')
+    console.group()
+    console.log('this.#currentResult', this.#currentResult)
+    console.log('this', this)
+    console.log('query', this.#currentQuery)
+    console.groupEnd()
     notifyManager.batch(() => {
       // First, trigger the listeners
       if (notifyOptions.listeners) {

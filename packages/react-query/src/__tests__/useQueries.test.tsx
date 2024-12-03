@@ -40,6 +40,13 @@ describe('useQueries', () => {
               return 2
             },
           },
+          {
+            queryKey: key1,
+            queryFn: async () => {
+              await sleep(10)
+              return 3
+            },
+          },
         ],
       })
       results.push(result)
@@ -59,6 +66,16 @@ describe('useQueries', () => {
     await waitFor(() => rendered.getByText('data1: 1, data2: 2'))
 
     expect(results.length).toBe(3)
+    console.log('RESULTS-JT', results)
+    console.group()
+    results.forEach((result, index) => {
+      console.log('RESULT-index', index)
+      result.forEach((r, index2) => {
+        console.log('RESULT-index', index, index2)
+        console.log({...r})
+      })
+    })
+    console.groupEnd()
     expect(results[0]).toMatchObject([{ data: undefined }, { data: undefined }])
     expect(results[1]).toMatchObject([{ data: 1 }, { data: undefined }])
     expect(results[2]).toMatchObject([{ data: 1 }, { data: 2 }])

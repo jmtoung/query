@@ -221,6 +221,7 @@ export type QueriesResults<
           : // Fallback
             Array<UseQueryResult>
 
+let count = 0
 export function useQueries<
   T extends Array<any>,
   TCombinedResult = QueriesResults<T>,
@@ -254,6 +255,11 @@ export function useQueries<
       }),
     [queries, client, isRestoring],
   )
+  console.log('useQueries.defaultedQueries')
+  console.group()
+  console.log('queries', queries)
+  console.log('defaultedQueries', defaultedQueries)
+  console.groupEnd()
 
   defaultedQueries.forEach((query) => {
     ensureSuspenseTimers(query)
@@ -262,6 +268,8 @@ export function useQueries<
 
   useClearResetErrorBoundary(errorResetBoundary)
 
+  console.log('useQueries.newQueriesObserver')
+  console.group()
   const [observer] = React.useState(
     () =>
       new QueriesObserver<TCombinedResult>(
@@ -270,28 +278,39 @@ export function useQueries<
         options as QueriesObserverOptions<TCombinedResult>,
       ),
   )
+  console.groupEnd()
 
+  console.log('useQueries.optimisticResult')
+  console.group()
   const [optimisticResult, getCombinedResult, trackResult] =
     observer.getOptimisticResult(
       defaultedQueries,
       (options as QueriesObserverOptions<TCombinedResult>).combine,
     )
+  console.log('optimisticResult', optimisticResult)
+  console.groupEnd()
 
+  console.log('useQueries.useSyncExternalStore')
+  console.group()
   React.useSyncExternalStore(
     React.useCallback(
-      (onStoreChange) =>
-        isRestoring
-          ? noop
-          : observer.subscribe(notifyManager.batchCalls(onStoreChange)),
+      (onStoreChange) => {
+        console.log('running syncExternalStore subscribe function')
+        return isRestoring
+        ? noop
+        : observer.subscribe(notifyManager.batchCalls(onStoreChange))
+      },
       [observer, isRestoring],
     ),
     () => observer.getCurrentResult(),
     () => observer.getCurrentResult(),
   )
+  console.groupEnd()
 
   React.useEffect(() => {
     // Do not notify on updates because of changes in the options because
     // these changes should already be reflected in the optimistic result.
+    console.log('useQueries.useEffect.setQueries!!!')
     observer.setQueries(
       defaultedQueries,
       options as QueriesObserverOptions<TCombinedResult>,
@@ -343,5 +362,15 @@ export function useQueries<
     throw firstSingleResultWhichShouldThrow.error
   }
 
-  return getCombinedResult(trackResult())
+  const combinedResult = getCombinedResult(trackResult())
+  console.log('useQueries.combinedResult', count)
+  // eslint-disable-next-line 
+  count +=1
+  console.group()
+  ;(combinedResult as unknown as Array<any>).forEach((result, index) => {
+    console.log('index', index)
+    console.log('result', {...result})
+  })
+  console.groupEnd()
+  return combinedResult
 }
